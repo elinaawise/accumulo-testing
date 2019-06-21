@@ -4,9 +4,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.testing.continuous.ContinuousIngest;
@@ -26,7 +29,16 @@ public class RollWALPT implements PerformanceTest {
 
   @Override
   public SystemConfiguration getSystemConfig() {
-    return new SystemConfiguration();
+    Map<String,String> siteCfg = new HashMap<>();
+
+    siteCfg.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "1000");
+    siteCfg.put(Property.TSERV_MINTHREADS.getKey(), "256");
+    siteCfg.put(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "32");
+    siteCfg.put(Property.TABLE_DURABILITY.getKey(), "flush");
+    siteCfg.put(Property.TSERV_DATACACHE_SIZE.getKey(), "2G");
+    siteCfg.put(Property.TSERV_INDEXCACHE_SIZE.getKey(), "1G");
+
+    return new SystemConfiguration().setAccumuloConfig(siteCfg);
   }
 
   @Override
@@ -108,6 +120,7 @@ public class RollWALPT implements PerformanceTest {
 
     // use a bigger WAL max size to eliminate WAL roll-overs
     // using default TSERV_WALOG_MAX_SIZE of 1G
+    env.getClient().instanceOperations().setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1G");
     env.getClient().tableOperations().flush(MetadataTable.NAME, null, null, true);
     env.getClient().tableOperations().flush(RootTable.NAME, null, null, true);
 
